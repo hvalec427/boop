@@ -1,9 +1,9 @@
 #!/bin/sh
-# Remove touchctl from ~/.touchctl/bin (or $INSTALL_DIR) and its PATH line.
+# Remove touchctl from ~/.touchctl/bin and its PATH line.
 set -e
 
 TOOL="touchctl"
-BIN_DIR="${INSTALL_DIR:-$HOME/.$TOOL/bin}"
+BIN_DIR="$HOME/.$TOOL/bin"
 
 if [ -f "$BIN_DIR/$TOOL" ]; then
   rm -f "$BIN_DIR/$TOOL"
