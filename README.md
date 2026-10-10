@@ -45,6 +45,9 @@ only booted simulator or adb device.
 curl -fsSL https://raw.githubusercontent.com/hvalec427/touchctl/master/install.sh | sh
 ```
 
+It installs to `~/.touchctl/bin/touchctl` (no sudo) and adds that folder to your PATH in
+your shell config (`INSTALL_DIR=…` installs elsewhere).
+
 Or the latest build from `develop` with `… | sh -s -- dev`. Update with
 `touchctl update` (`--stable`, `--nightly`, `--dev` to switch channels).
 Uninstall:
