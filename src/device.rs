@@ -92,13 +92,30 @@ pub fn android_serials() -> Vec<String> {
     String::from_utf8_lossy(&out.stdout).lines().skip(1).filter_map(|l| l.split_once('\t')).filter(|(_, s)| s.trim() == "device").map(|(d, _)| d.to_string()).collect()
 }
 
-fn sim_name(udid: &str) -> Option<String> {
-    let out = Command::new("xcrun").args(["simctl", "list", "devices", "-j"]).output().ok()?;
-    let v: Value = serde_json::from_slice(&out.stdout).ok()?;
-    v["devices"].as_object()?.values().flat_map(|l| l.as_array().into_iter().flatten()).find(|d| d["udid"] == udid).map(|d| d["name"].as_str().unwrap_or("").to_string())
+/// An Android device's `--device` id and name: an emulator is known by its
+/// AVD name (its serial changes every boot), a phone by its serial and model.
+pub fn android_id(serial: &str) -> (String, String) {
+    let adb = |args: &[&str]| Command::new("adb").arg("-s").arg(serial).args(args).output().ok().map(|o| String::from_utf8_lossy(&o.stdout).lines().next().unwrap_or("").trim().to_string()).filter(|s| !s.is_empty());
+    if serial.starts_with("emulator-") {
+        if let Some(avd) = adb(&["emu", "avd", "name"]) {
+            return (avd.clone(), avd);
+        }
+    }
+    (serial.to_string(), adb(&["shell", "getprop", "ro.product.model"]).unwrap_or_default())
 }
 
-/// A device id → Device: an iOS simulator udid or an adb serial.
+/// Every device touchctl can drive, with its id and name.
+fn all_devices() -> Vec<(String, String, Device)> {
+    let mut all: Vec<(String, String, Device)> = booted_sims().into_iter().map(|(udid, name)| (udid.clone(), name.clone(), Device::IosSim { udid, name })).collect();
+    for serial in android_serials() {
+        let (id, name) = android_id(&serial);
+        all.push((id, name, Device::Android { serial }));
+    }
+    all
+}
+
+/// A `--device` value → Device, resolved like simon and metroctl do: an iOS
+/// udid, an AVD name, an adb serial, or a name only one device has.
 pub fn by_id(id: &str) -> Result<Device> {
     if let Some(name) = sim_name(id) {
         return Ok(Device::IosSim { udid: id.to_string(), name });
@@ -106,10 +123,26 @@ pub fn by_id(id: &str) -> Result<Device> {
     if android_serials().iter().any(|s| s == id) {
         return Ok(Device::Android { serial: id.to_string() });
     }
+    let all = all_devices();
+    if let Some((_, _, d)) = all.iter().find(|(i, _, _)| i == id) {
+        return Ok(d.clone());
+    }
+    let named: Vec<&(String, String, Device)> = all.iter().filter(|(_, n, _)| n == id).collect();
+    match named.len() {
+        1 => return Ok(named[0].2.clone()),
+        0 => {}
+        _ => bail!("several devices are named {id}; pass an id: {}", named.iter().map(|(i, _, _)| i.as_str()).collect::<Vec<_>>().join(", ")),
+    }
     if id.len() >= 24 && id.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
         bail!("{id} isn't a simulator or adb device; physical iPhones aren't supported yet");
     }
-    bail!("no simulator or adb device {id} (see `touchctl devices`)")
+    bail!("no running device {id} (see `touchctl devices`)")
+}
+
+fn sim_name(udid: &str) -> Option<String> {
+    let out = Command::new("xcrun").args(["simctl", "list", "devices", "-j"]).output().ok()?;
+    let v: Value = serde_json::from_slice(&out.stdout).ok()?;
+    v["devices"].as_object()?.values().flat_map(|l| l.as_array().into_iter().flatten()).find(|d| d["udid"] == udid).map(|d| d["name"].as_str().unwrap_or("").to_string())
 }
 
 /// The device id in a JSON file's `udid` field, e.g. metroctl's
@@ -135,8 +168,7 @@ pub fn resolve(device: Option<&str>, from: Option<&PathBuf>) -> Result<Device> {
     if let Some(f) = from.cloned().or_else(|| std::env::var("TOUCHCTL_DEVICE_FROM").ok().filter(|f| !f.is_empty()).map(PathBuf::from)) {
         return by_id(&id_from_file(&f)?);
     }
-    let mut all: Vec<Device> = booted_sims().into_iter().map(|(udid, name)| Device::IosSim { udid, name }).collect();
-    all.extend(android_serials().into_iter().map(|serial| Device::Android { serial }));
+    let mut all: Vec<Device> = all_devices().into_iter().map(|(_, _, d)| d).collect();
     match all.len() {
         1 => Ok(all.remove(0)),
         0 => bail!("no booted simulator or adb device"),

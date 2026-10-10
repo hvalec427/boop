@@ -15,7 +15,7 @@ use std::time::Duration;
 #[derive(Parser)]
 #[command(name = "touchctl", version, about = "Control iOS simulators and Android devices: element tree, tap, swipe, type, screenshot")]
 struct Cli {
-    /// Simulator udid or adb serial (default: $TOUCHCTL_DEVICE, else the only booted device)
+    /// iOS udid, AVD name, adb serial, or a name only one device has (default: $TOUCHCTL_DEVICE, else the only booted device)
     #[arg(long, global = true)]
     device: Option<String>,
     /// Read the device from a JSON file's "udid" (e.g. .metroctl/session.json; also $TOUCHCTL_DEVICE_FROM)
@@ -138,7 +138,9 @@ fn run(cli: Cli) -> anyhow::Result<()> {
                 println!("{udid}  {name} (iOS simulator)");
             }
             for s in device::android_serials() {
-                println!("{s}  (Android)");
+                let (id, name) = device::android_id(&s);
+                let kind = if s.starts_with("emulator-") { format!("Android emulator, {s}") } else { "Android".into() };
+                println!("{id}  {name} ({kind})");
             }
         }
         Command::Ui { filter, json } => {

@@ -23,10 +23,21 @@ Coordinates are what the device taps in: points on iOS, pixels on Android.
 
 ## Device
 
-`--device <udid|serial>`, else `$TOUCHCTL_DEVICE`, else `--device-from <file>`
+`--device <id>`, else `$TOUCHCTL_DEVICE`, else `--device-from <file>`
 / `$TOUCHCTL_DEVICE_FROM` (a JSON file with a `"udid"`, e.g. metroctl's
 `.metroctl/session.json`, looked up from the current dir upwards), else the
 only booted simulator or adb device.
+
+touchctl, metroctl and simon target a device by the same `--device` id, the one `simon list`,
+`simon running`, `touchctl devices` and metroctl's Devices pane show:
+
+| Device | id |
+|---|---|
+| iOS simulator or iPhone | its udid |
+| Android emulator | its AVD name (its `emulator-5554` serial changes every boot, though that works too) |
+| Android phone | its adb serial |
+
+A device name works as well when only one device has it.
 
 ## How it works
 
