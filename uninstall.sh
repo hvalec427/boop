@@ -1,8 +1,8 @@
 #!/bin/sh
-# Remove touchctl from ~/.touchctl/bin and its PATH line.
+# Remove boop from ~/.boop/bin and its PATH line.
 set -e
 
-TOOL="touchctl"
+TOOL="boop"
 BIN_DIR="$HOME/.$TOOL/bin"
 
 if [ -f "$BIN_DIR/$TOOL" ]; then

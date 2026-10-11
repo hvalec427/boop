@@ -3,7 +3,7 @@
 # tagged with the UTC date (e.g. 0.2.0-nightly.20261008) — one build per day.
 set -euo pipefail
 
-REPO="hvalec427/touchctl"
+REPO="hvalec427/boop"
 
 # Base = the version the next stable release will get; LATEST is for notes.
 # Authenticated: Actions runners share IPs and hit the anonymous rate limit (403).
@@ -47,11 +47,11 @@ NOTES=$(mktemp)
   echo "### Install this build"
   echo
   echo '```sh'
-  echo "curl -fsSL https://github.com/${REPO}/releases/download/${TAG}/touchctl-darwin-arm64 -o touchctl \\"
-  echo "  && chmod +x touchctl && sudo mv touchctl /usr/local/bin/touchctl"
+  echo "curl -fsSL https://github.com/${REPO}/releases/download/${TAG}/boop-darwin-arm64 -o boop \\"
+  echo "  && chmod +x boop && sudo mv boop /usr/local/bin/boop"
   echo '```'
   echo
-  echo "_Apple Silicon shown; on Intel use \`touchctl-darwin-x64\`. Already installed? \`touchctl update --nightly\`._"
+  echo "_Apple Silicon shown; on Intel use \`boop-darwin-x64\`. Already installed? \`boop update --nightly\`._"
 } > "${NOTES}"
 
 # A nightly already cut today is replaced, so the day's last build wins.
@@ -65,4 +65,4 @@ gh release create "${TAG}" \
   --target "$(git rev-parse HEAD)" \
   --title "${TAG}" \
   --notes-file "${NOTES}" \
-  touchctl-darwin-arm64 touchctl-darwin-x64
+  boop-darwin-arm64 boop-darwin-x64

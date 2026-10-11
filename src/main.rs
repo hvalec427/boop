@@ -1,4 +1,4 @@
-//! touchctl — control iOS simulators and Android devices from the command
+//! boop — control iOS simulators and Android devices from the command
 //! line: read the element tree, tap, swipe, type, press buttons, take
 //! screenshots. Built for coding agents (which call it through their shell)
 //! as much as for people and scripts.
@@ -13,12 +13,12 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 #[derive(Parser)]
-#[command(name = "touchctl", version, about = "Control iOS simulators and Android devices: element tree, tap, swipe, type, screenshot")]
+#[command(name = "boop", version, about = "Control iOS simulators and Android devices: element tree, tap, swipe, type, screenshot")]
 struct Cli {
-    /// iOS udid, AVD name, adb serial, or a name only one device has (default: $TOUCHCTL_DEVICE, else the only booted device)
+    /// iOS udid, AVD name, adb serial, or a name only one device has (default: $BOOP_DEVICE, else the only booted device)
     #[arg(long, global = true)]
     device: Option<String>,
-    /// Read the device from a JSON file's "udid" (e.g. .metroctl/session.json; also $TOUCHCTL_DEVICE_FROM)
+    /// Read the device from a JSON file's "udid" (e.g. .signalbox/session.json; also $BOOP_DEVICE_FROM)
     #[arg(long = "device-from", global = true)]
     device_from: Option<PathBuf>,
     #[command(subcommand)]
@@ -83,7 +83,7 @@ enum Command {
         #[command(subcommand)]
         action: WdaAction,
     },
-    /// Check whether a newer version of touchctl is available
+    /// Check whether a newer version of boop is available
     #[command(name = "check-update")]
     CheckUpdate {
         #[arg(long)]
@@ -93,7 +93,7 @@ enum Command {
         #[arg(long)]
         dev: bool,
     },
-    /// Update touchctl to the latest version (stays on the installed build's channel)
+    /// Update boop to the latest version (stays on the installed build's channel)
     Update {
         #[arg(long)]
         stable: bool,
@@ -210,7 +210,7 @@ fn run(cli: Cli) -> anyhow::Result<()> {
         }
         Command::Screenshot { out, max } => {
             let d = dev()?;
-            let path = out.unwrap_or_else(|| std::env::temp_dir().join(format!("touchctl-{}.jpg", std::process::id())));
+            let path = out.unwrap_or_else(|| std::env::temp_dir().join(format!("boop-{}.jpg", std::process::id())));
             d.screenshot(&path, max)?;
             println!("{}", path.display());
         }

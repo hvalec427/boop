@@ -1,7 +1,7 @@
 //! WebDriverAgent, the XCTest runner that drives iOS UI (what Appium and
-//! Maestro use underneath). touchctl builds it once per Xcode version into
-//! `~/.cache/touchctl`, and runs one per simulator in the background, on its
-//! own port. `~/.cache/touchctl/wda/<udid>.json` records the pid and port, so
+//! Maestro use underneath). boop builds it once per Xcode version into
+//! `~/.cache/boop`, and runs one per simulator in the background, on its
+//! own port. `~/.cache/boop/wda/<udid>.json` records the pid and port, so
 //! later commands reuse it.
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-/// WebDriverAgent release to build (override with TOUCHCTL_WDA_TAG). Newer
+/// WebDriverAgent release to build (override with BOOP_WDA_TAG). Newer
 /// ones embed `lib_TestingInterop.dylib`, which Xcode 26.2 doesn't ship.
 pub const WDA_TAG: &str = "v16.12.10";
 const REPO: &str = "https://github.com/appium/WebDriverAgent";
@@ -23,12 +23,21 @@ struct Running {
 }
 
 fn cache() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_default();
-    std::env::var("TOUCHCTL_CACHE").map(PathBuf::from).unwrap_or_else(|_| PathBuf::from(home).join(".cache/touchctl"))
+    if let Some(c) = crate::device::env("CACHE") {
+        return PathBuf::from(c);
+    }
+    let home = PathBuf::from(std::env::var("HOME").unwrap_or_default());
+    let dir = home.join(".cache/boop");
+    // Keep the WebDriverAgent build from before the rename (touchctl).
+    let old = home.join(".cache/touchctl");
+    if !dir.exists() && old.exists() {
+        let _ = std::fs::rename(&old, &dir);
+    }
+    dir
 }
 
 fn tag() -> String {
-    std::env::var("TOUCHCTL_WDA_TAG").unwrap_or_else(|_| WDA_TAG.into())
+    crate::device::env("WDA_TAG").unwrap_or_else(|| WDA_TAG.into())
 }
 
 fn entry(udid: &str) -> PathBuf {
@@ -90,7 +99,7 @@ fn run(cmd: &mut Command) -> Result<()> {
     Ok(())
 }
 
-/// Held while cloning/building, so parallel touchctls don't build into the
+/// Held while cloning/building, so parallel boops don't build into the
 /// same directory. A lock older than 20 minutes is left over from a crash.
 struct BuildLock(PathBuf);
 
@@ -160,7 +169,7 @@ fn xctestrun() -> Result<PathBuf> {
         .arg(&build)
         .args(["CODE_SIGNING_ALLOWED=NO", "-quiet"])
         .current_dir(&src))
-    .context("building WebDriverAgent (set TOUCHCTL_WDA_TAG to try another release)")?;
+    .context("building WebDriverAgent (set BOOP_WDA_TAG to try another release)")?;
     find().ok_or_else(|| anyhow!("WebDriverAgent built, but no .xctestrun in {}", build.display()))
 }
 

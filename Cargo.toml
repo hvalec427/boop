@@ -1,5 +1,5 @@
 [package]
-name = "touchctl"
+name = "boop"
 version = "0.0.0"
 edition = "2021"
 description = "Control iOS simulators and Android devices from the command line: element tree, tap, swipe, type, screenshot"

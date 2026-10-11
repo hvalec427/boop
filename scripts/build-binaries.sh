@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the signed macOS binaries (arm64 + x64) for a given version. Produces
-# touchctl-darwin-arm64 and touchctl-darwin-x64 at the repo root — the asset
+# boop-darwin-arm64 and boop-darwin-x64 at the repo root — the asset
 # names the installer expects.
 set -euo pipefail
 
@@ -17,11 +17,11 @@ rustup target add aarch64-apple-darwin x86_64-apple-darwin >/dev/null 2>&1 || tr
 cargo build --release --target aarch64-apple-darwin
 cargo build --release --target x86_64-apple-darwin
 
-cp target/aarch64-apple-darwin/release/touchctl touchctl-darwin-arm64
-cp target/x86_64-apple-darwin/release/touchctl touchctl-darwin-x64
+cp target/aarch64-apple-darwin/release/boop boop-darwin-arm64
+cp target/x86_64-apple-darwin/release/boop boop-darwin-x64
 
 # Ad-hoc sign so Gatekeeper lets the binaries run (same approach as simon).
-codesign --force --sign - touchctl-darwin-arm64
-codesign --force --sign - touchctl-darwin-x64
+codesign --force --sign - boop-darwin-arm64
+codesign --force --sign - boop-darwin-x64
 
-echo "Built touchctl ${VERSION} (arm64 + x64)."
+echo "Built boop ${VERSION} (arm64 + x64)."

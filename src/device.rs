@@ -104,7 +104,7 @@ pub fn android_id(serial: &str) -> (String, String) {
     (serial.to_string(), adb(&["shell", "getprop", "ro.product.model"]).unwrap_or_default())
 }
 
-/// Every device touchctl can drive, with its id and name.
+/// Every device boop can drive, with its id and name.
 fn all_devices() -> Vec<(String, String, Device)> {
     let mut all: Vec<(String, String, Device)> = booted_sims().into_iter().map(|(udid, name)| (udid.clone(), name.clone(), Device::IosSim { udid, name })).collect();
     for serial in android_serials() {
@@ -114,7 +114,7 @@ fn all_devices() -> Vec<(String, String, Device)> {
     all
 }
 
-/// A `--device` value → Device, resolved like simon and metroctl do: an iOS
+/// A `--device` value → Device, resolved like simon and signalbox do: an iOS
 /// udid, an AVD name, an adb serial, or a name only one device has.
 pub fn by_id(id: &str) -> Result<Device> {
     if let Some(name) = sim_name(id) {
@@ -136,7 +136,7 @@ pub fn by_id(id: &str) -> Result<Device> {
     if id.len() >= 24 && id.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
         bail!("{id} isn't a simulator or adb device; physical iPhones aren't supported yet");
     }
-    bail!("no running device {id} (see `touchctl devices`)")
+    bail!("no running device {id} (see `boop devices`)")
 }
 
 fn sim_name(udid: &str) -> Option<String> {
@@ -145,8 +145,8 @@ fn sim_name(udid: &str) -> Option<String> {
     v["devices"].as_object()?.values().flat_map(|l| l.as_array().into_iter().flatten()).find(|d| d["udid"] == udid).map(|d| d["name"].as_str().unwrap_or("").to_string())
 }
 
-/// The device id in a JSON file's `udid` field, e.g. metroctl's
-/// `.metroctl/session.json`, looked up from `path` or its parent dirs when
+/// The device id in a JSON file's `udid` field, e.g. signalbox's
+/// `.signalbox/session.json`, looked up from `path` or its parent dirs when
 /// relative.
 fn id_from_file(path: &Path) -> Result<String> {
     let file = if path.is_absolute() {
@@ -159,13 +159,18 @@ fn id_from_file(path: &Path) -> Result<String> {
     v["udid"].as_str().map(String::from).ok_or_else(|| anyhow!("{} has no device yet (no \"udid\")", file.display()))
 }
 
-/// `--device`, else $TOUCHCTL_DEVICE, else `--device-from`/$TOUCHCTL_DEVICE_FROM,
+/// `$BOOP_<name>`, or `$TOUCHCTL_<name>` from before boop was renamed.
+pub fn env(name: &str) -> Option<String> {
+    [format!("BOOP_{name}"), format!("TOUCHCTL_{name}")].iter().find_map(|k| std::env::var(k).ok().filter(|v| !v.is_empty()))
+}
+
+/// `--device`, else $BOOP_DEVICE, else `--device-from`/$BOOP_DEVICE_FROM,
 /// else the only booted device.
 pub fn resolve(device: Option<&str>, from: Option<&PathBuf>) -> Result<Device> {
-    if let Some(d) = device.map(String::from).or_else(|| std::env::var("TOUCHCTL_DEVICE").ok().filter(|d| !d.is_empty())) {
+    if let Some(d) = device.map(String::from).or_else(|| env("DEVICE")) {
         return by_id(&d);
     }
-    if let Some(f) = from.cloned().or_else(|| std::env::var("TOUCHCTL_DEVICE_FROM").ok().filter(|f| !f.is_empty()).map(PathBuf::from)) {
+    if let Some(f) = from.cloned().or_else(|| env("DEVICE_FROM").map(PathBuf::from)) {
         return by_id(&id_from_file(&f)?);
     }
     let mut all: Vec<Device> = all_devices().into_iter().map(|(_, _, d)| d).collect();

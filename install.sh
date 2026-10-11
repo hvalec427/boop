@@ -1,11 +1,12 @@
 #!/bin/sh
-# Install touchctl into ~/.touchctl/bin (no sudo) and put that on your PATH.
-#   curl -fsSL https://raw.githubusercontent.com/hvalec427/touchctl/master/install.sh | sh
+# Install boop into ~/.boop/bin (no sudo) and put that on your PATH.
+#   curl -fsSL https://raw.githubusercontent.com/hvalec427/boop/develop/install.sh | sh -s -- dev
 #   … | sh -s -- dev        rolling dev build (or `nightly`, or a version tag)
 set -e
 
-TOOL="touchctl"
-REPO="hvalec427/touchctl"
+TOOL="boop"
+OLD_TOOL="touchctl" # its name before the rename
+REPO="hvalec427/boop"
 BIN_DIR="$HOME/.$TOOL/bin"
 
 # Detect architecture
@@ -85,6 +86,21 @@ if ! grep -qsF "$LINE" "$RC"; then
 fi
 if [ "$ON_PATH" = 0 ]; then
   echo "Open a new terminal, or run:  $LINE"
+fi
+
+# The install from before the rename ($OLD_TOOL): remove it and its PATH line.
+OLD_DIR="$HOME/.$OLD_TOOL"
+if [ -d "$OLD_DIR/bin" ]; then
+  rm -rf "$OLD_DIR"
+  echo "Removed the old $OLD_TOOL install ($OLD_DIR); $TOOL replaces it."
+  for RC in "${ZDOTDIR:-$HOME}/.zshrc" "$HOME/.bash_profile" "$HOME/.bashrc" "$HOME/.profile" "$HOME/.config/fish/config.fish"; do
+    if grep -qsF "/.$OLD_TOOL/bin" "$RC"; then
+      TMP="$(mktemp)"
+      grep -vF "/.$OLD_TOOL/bin" "$RC" | sed "/^# $OLD_TOOL\$/d" > "$TMP"
+      cat "$TMP" > "$RC" && rm -f "$TMP"
+      echo "Removed its PATH line from $RC."
+    fi
+  done
 fi
 
 # Older copies elsewhere on PATH (e.g. /usr/local/bin from a previous installer).

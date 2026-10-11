@@ -1,6 +1,6 @@
 //! Self-update: release channels (stable / nightly / dev), GitHub resolution,
 //! version comparison, and installing over the running binary. Mirrors simon's
-//! `update.rs`, adapted for the touchctl repo/binary.
+//! `update.rs`, adapted for the boop repo/binary.
 
 use anyhow::{bail, Result};
 use serde::Deserialize;
@@ -8,8 +8,8 @@ use std::cmp::Ordering;
 use std::path::PathBuf;
 use std::process::Command;
 
-const REPO: &str = "hvalec427/touchctl";
-const UA: &str = "touchctl-cli";
+const REPO: &str = "hvalec427/boop";
+const UA: &str = "boop-cli";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Channel {
@@ -199,9 +199,9 @@ pub fn compare_versions(a: &str, b: &str) -> Ordering {
 
 fn asset_name() -> &'static str {
     if cfg!(target_arch = "aarch64") {
-        "touchctl-darwin-arm64"
+        "boop-darwin-arm64"
     } else {
-        "touchctl-darwin-x64"
+        "boop-darwin-x64"
     }
 }
 
@@ -212,7 +212,7 @@ pub fn download_binary(tag: &str) -> Result<PathBuf> {
         bail!("Download failed: {}", resp.status());
     }
     let bytes = resp.bytes()?;
-    let tmp = std::env::temp_dir().join("touchctl-update");
+    let tmp = std::env::temp_dir().join("boop-update");
     std::fs::write(&tmp, &bytes)?;
     #[cfg(unix)]
     {
@@ -224,26 +224,26 @@ pub fn download_binary(tag: &str) -> Result<PathBuf> {
 }
 
 /// Install over the actually-running binary (resolving symlinks), falling back
-/// to `touchctl` on PATH, then the default path.
+/// to `boop` on PATH, then the default path.
 pub fn install_target() -> PathBuf {
     if let Ok(exe) = std::env::current_exe() {
-        if exe.file_name().map(|n| n == "touchctl").unwrap_or(false) {
+        if exe.file_name().map(|n| n == "boop").unwrap_or(false) {
             return std::fs::canonicalize(&exe).unwrap_or(exe);
         }
     }
-    if let Ok(out) = Command::new("sh").args(["-c", "command -v touchctl"]).output() {
+    if let Ok(out) = Command::new("sh").args(["-c", "command -v boop"]).output() {
         let p = String::from_utf8_lossy(&out.stdout).trim().to_string();
         if !p.is_empty() {
             return std::fs::canonicalize(&p).unwrap_or_else(|_| PathBuf::from(p));
         }
     }
-    // Where install.sh puts it: ~/.touchctl/bin/touchctl.
-    PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".touchctl/bin/touchctl")
+    // Where install.sh puts it: ~/.boop/bin/boop.
+    PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".boop/bin/boop")
 }
 
 pub fn needs_sudo(target: &std::path::Path) -> bool {
     let dir = target.parent().unwrap_or(std::path::Path::new("/"));
-    let probe = dir.join(".touchctl-write-probe");
+    let probe = dir.join(".boop-write-probe");
     match std::fs::File::create(&probe) {
         Ok(_) => {
             let _ = std::fs::remove_file(&probe);
@@ -275,11 +275,11 @@ fn resolve_channel(stable: bool, nightly: bool, dev: bool) -> Channel {
     }
 }
 
-/// `touchctl update` — install the latest build for the chosen channel, or the
+/// `boop update` — install the latest build for the chosen channel, or the
 /// installed build's own channel.
 pub fn update(stable: bool, nightly: bool, dev: bool, force: bool) {
     if !platform_supported() {
-        eprintln!("touchctl self-update is macOS-only (arm64/x64). Build from source on other platforms.");
+        eprintln!("boop self-update is macOS-only (arm64/x64). Build from source on other platforms.");
         std::process::exit(1);
     }
     let channel = resolve_channel(stable, nightly, dev);
@@ -301,7 +301,7 @@ pub fn update(stable: bool, nightly: bool, dev: bool, force: bool) {
     }
     if cmp == Ordering::Less && !switched && !force {
         println!("The latest {} build ({}) is older than your installed {current} — not downgrading.", channel.as_str(), latest.version);
-        println!("`touchctl update` will pick it up once a newer {} build is published, or use --force.", channel.as_str());
+        println!("`boop update` will pick it up once a newer {} build is published, or use --force.", channel.as_str());
         return;
     }
 
@@ -338,10 +338,10 @@ pub fn update(stable: bool, nightly: bool, dev: bool, force: bool) {
     println!("{verb} {} ({}).", latest.version, channel.as_str());
 }
 
-/// `touchctl check-update` — report whether a newer build is available.
+/// `boop check-update` — report whether a newer build is available.
 pub fn check_update(stable: bool, nightly: bool, dev: bool) {
     if !platform_supported() {
-        eprintln!("touchctl self-update is macOS-only (arm64/x64). Build from source on other platforms.");
+        eprintln!("boop self-update is macOS-only (arm64/x64). Build from source on other platforms.");
         std::process::exit(1);
     }
     let channel = resolve_channel(stable, nightly, dev);
@@ -366,7 +366,7 @@ pub fn check_update(stable: bool, nightly: bool, dev: bool) {
             println!("\nThe latest {} build ({}) is older than your installed version.", channel.as_str(), latest.version);
             if stable || nightly || dev {
                 let flag = if dev { " --dev" } else if nightly { " --nightly" } else { " --stable" };
-                println!("Run `touchctl update{flag}` to switch to the {} channel (installs {}).", channel.as_str(), latest.version);
+                println!("Run `boop update{flag}` to switch to the {} channel (installs {}).", channel.as_str(), latest.version);
             }
         }
         Ordering::Greater => {
@@ -374,7 +374,7 @@ pub fn check_update(stable: bool, nightly: bool, dev: bool) {
                 println!("\nWhat's new ({current} → {}):\n{notes}", latest.version);
             }
             let flag = if dev { " --dev" } else if nightly { " --nightly" } else if stable { " --stable" } else { "" };
-            println!("\nRun `touchctl update{flag}` to install.");
+            println!("\nRun `boop update{flag}` to install.");
         }
     }
 }

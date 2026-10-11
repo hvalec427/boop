@@ -94,8 +94,8 @@ impl Backend {
             }
             Backend::Adb { .. } => {
                 // uiautomator can't write to stdout reliably; dump to a file and read it back.
-                self.adb(&["shell", "uiautomator", "dump", "/sdcard/metroctl-ui.xml"])?;
-                let xml = self.adb(&["exec-out", "cat", "/sdcard/metroctl-ui.xml"])?;
+                self.adb(&["shell", "uiautomator", "dump", "/sdcard/signalbox-ui.xml"])?;
+                let xml = self.adb(&["exec-out", "cat", "/sdcard/signalbox-ui.xml"])?;
                 Ok(parse_uiautomator(&xml))
             }
         }
