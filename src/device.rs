@@ -155,6 +155,9 @@ fn id_from_file(path: &Path) -> Result<String> {
         let cwd = std::env::current_dir()?;
         cwd.ancestors().map(|d| d.join(path)).find(|p| p.exists()).unwrap_or_else(|| cwd.join(path))
     };
+    if !file.exists() {
+        bail!("no {} here or above: this checkout's app isn't running (start it with `signalbox up`)", path.display());
+    }
     let v: Value = serde_json::from_slice(&std::fs::read(&file).with_context(|| format!("reading {}", file.display()))?)?;
     v["udid"].as_str().map(String::from).ok_or_else(|| anyhow!("{} has no device yet (no \"udid\")", file.display()))
 }
@@ -178,5 +181,16 @@ pub fn resolve(device: Option<&str>, from: Option<&PathBuf>) -> Result<Device> {
         1 => Ok(all.remove(0)),
         0 => bail!("no booted simulator or adb device"),
         _ => bail!("several devices are up; pick one with --device:\n{}", all.iter().map(|d| format!("  {}", d.describe())).collect::<Vec<_>>().join("\n")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_missing_session_file_is_an_error_not_a_fallback() {
+        let err = resolve(None, Some(&PathBuf::from("no-such-dir-xyz/session.json"))).unwrap_err().to_string();
+        assert!(err.contains("isn't running"), "{err}");
     }
 }
