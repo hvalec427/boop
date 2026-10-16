@@ -4,6 +4,7 @@
 //! as much as for people and scripts.
 
 mod device;
+mod record;
 mod ui;
 mod update;
 mod wda;
@@ -76,6 +77,11 @@ enum Command {
         #[arg(long, default_value_t = 1000)]
         max: u32,
     },
+    /// Record the screen: `record start`, use the app, then `record stop <file.mp4>`
+    Record {
+        #[command(subcommand)]
+        action: RecordAction,
+    },
     /// Open a URL or deep link
     Open { url: String },
     /// Manage the WebDriverAgent that drives an iOS simulator
@@ -104,6 +110,17 @@ enum Command {
         /// Install the channel's latest even if it's the same or an older version
         #[arg(long)]
         force: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum RecordAction {
+    /// Start recording in the background
+    Start,
+    /// Stop and save the recording (.mp4); prints its path
+    Stop {
+        /// Output file (default: a temp file)
+        out: Option<PathBuf>,
     },
 }
 
@@ -213,6 +230,13 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             let path = out.unwrap_or_else(|| std::env::temp_dir().join(format!("boop-{}.jpg", std::process::id())));
             d.screenshot(&path, max)?;
             println!("{}", path.display());
+        }
+        Command::Record { action } => {
+            let d = dev()?;
+            match action {
+                RecordAction::Start => record::start(&d)?,
+                RecordAction::Stop { out } => println!("{}", record::stop(&d, out.as_deref())?.display()),
+            }
         }
         Command::Open { url } => {
             dev()?.open_url(&url)?;

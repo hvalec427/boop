@@ -15,6 +15,8 @@ boop swipe up                      # finger moves up, content scrolls down; or -
 boop type "me@example.com" --id email_input
 boop press enter                   # home, back (Android), enter
 boop screenshot                    # prints the JPEG path (-o file, --max px)
+boop record start                  # record the screen in the background…
+boop record stop flow.mp4          # …and save it (prints the path)
 boop open "myapp://prices"
 ```
 

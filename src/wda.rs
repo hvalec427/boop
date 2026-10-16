@@ -22,7 +22,7 @@ struct Running {
     port: u16,
 }
 
-fn cache() -> PathBuf {
+pub fn cache() -> PathBuf {
     if let Some(c) = crate::device::env("CACHE") {
         return PathBuf::from(c);
     }
