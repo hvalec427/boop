@@ -7,9 +7,10 @@ REPO="hvalec427/boop"
 
 # Base = the version the next stable release will get; LATEST is for notes.
 # Authenticated: Actions runners share IPs and hit the anonymous rate limit (403).
+# No stable release yet (404) leaves LATEST empty.
 LATEST=$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
   "https://api.github.com/repos/$REPO/releases/latest" \
-  | grep '"tag_name"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
+  | grep '"tag_name"' | head -1 | cut -d'"' -f4 | sed 's/^v//' || true)
 BASE=$(bash scripts/next-version.sh)
 
 # Previous nightly = highest date suffix.
